@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>拼音奥特曼</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:linear-gradient(160deg,#1b2a52 0%,#0d1430 100%);
+    color:#fff; min-height:100%; overflow-x:hidden; user-select:none;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .hidden{ display:none !important; }
+  .screen{ width:100%; max-width:480px; padding:18px; display:flex; flex-direction:column; align-items:center; }
+
+  /* 顶部条 */
+  .topbar{ width:100%; max-width:480px; display:flex; align-items:center; justify-content:space-between; padding:12px 16px; }
+  .topbar button{ background:#2a3a6a; border:none; color:#cfe0ff; font-size:15px; padding:8px 14px; border-radius:20px; cursor:pointer; }
+  .topbar .title{ font-size:17px; opacity:.85; }
+
+  /* 首页 */
+  #home{ justify-content:center; gap:26px; padding-top:8vh; }
+  .logo{ font-size:44px; font-weight:900; letter-spacing:4px; text-align:center; line-height:1.25;
+    background:linear-gradient(90deg,#ffd54a,#ff7676,#5fd0ff); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 3px 10px rgba(0,0,0,.4)); }
+  .logo small{ display:block; font-size:18px; -webkit-text-fill-color:#cfe0ff; margin-top:6px; letter-spacing:6px; }
+  .big-btn{ font-size:26px; font-weight:800; padding:18px 56px; border:none; border-radius:50px; cursor:pointer;
+    background:linear-gradient(90deg,#ff8a3d,#ff5f6d); color:#fff; box-shadow:0 8px 24px rgba(255,95,109,.45); letter-spacing:3px; }
+  .big-btn:active{ transform:translateY(2px); }
+  .ghost-btn{ font-size:19px; padding:13px 40px; border-radius:40px; border:2px solid #4a63a8; background:transparent; color:#cfe0ff; cursor:pointer; }
+
+  /* 地图 */
+  .world{ width:100%; margin-bottom:22px; }
+  .world-name{ font-size:16px; color:#ffd54a; margin:4px 4px 12px; letter-spacing:2px; }
+  .nodes{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .node{ aspect-ratio:1; border-radius:18px; border:none; cursor:pointer; position:relative;
+    display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800;
+    background:#26356a; color:#fff; box-shadow:inset 0 -4px 0 rgba(0,0,0,.25); }
+  .node.done{ background:linear-gradient(160deg,#3ec6a0,#2a9d84); }
+  .node.current{ background:linear-gradient(160deg,#ffb03a,#ff7a3d); animation:pulse 1.2s infinite; }
+  .node.locked{ background:#1a2447; color:#4a5a8a; cursor:default; }
+  .node .star{ position:absolute; top:4px; right:6px; font-size:13px; }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,176,58,.6),inset 0 -4px 0 rgba(0,0,0,.25);} 50%{ box-shadow:0 0 0 10px rgba(255,176,58,0),inset 0 -4px 0 rgba(0,0,0,.25);} }
+
+  /* 关卡-学习 */
+  #play{ justify-content:flex-start; gap:18px; padding-top:6px; }
+  .prompt{ font-size:18px; opacity:.85; height:24px; text-align:center; }
+  .learn-card{ display:flex; align-items:center; justify-content:center; gap:18px; margin-top:6px; }
+  .py-big{ font-size:120px; font-weight:900; line-height:1;
+    background:linear-gradient(180deg,#fff,#bfe0ff); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 4px 8px rgba(0,0,0,.4)); cursor:pointer; }
+  .hero-box{ width:120px; }
+  .hero-box svg{ width:100%; height:auto; filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
+  .tones{ display:flex; gap:12px; margin-top:4px; }
+  .tone{ font-size:30px; font-weight:800; width:56px; height:56px; border-radius:14px; border:2px solid #4a63a8;
+    background:#1c2a55; color:#ffd54a; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .tone:active{ transform:scale(.94); }
+  .speaker{ font-size:20px; padding:12px 26px; border-radius:40px; border:none; background:#2a3a6a; color:#cfe0ff; cursor:pointer; }
+
+  /* 关卡-打怪兽 */
+  .monsters{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  .monster{ width:110px; height:130px; border-radius:18px; border:none; cursor:pointer; position:relative;
+    background:#2a1a3a; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; box-shadow:0 6px 16px rgba(0,0,0,.4); }
+  .monster .m-emoji{ font-size:46px; }
+  .monster .m-py{ font-size:30px; font-weight:800; color:#ffd54a; }
+  .monster.dead{ animation:boom .5s forwards; }
+  .monster.wrong{ animation:shake .4s; }
+  @keyframes boom{ 0%{transform:scale(1);opacity:1;} 60%{transform:scale(1.3) rotate(8deg);} 100%{transform:scale(0);opacity:0;} }
+  @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+
+  .beam{ position:fixed; inset:0; pointer-events:none; z-index:50; display:flex; align-items:center; justify-content:center; }
+  .beam.on::before{ content:""; position:absolute; left:0; right:0; top:50%; height:16px; transform:translateY(-50%);
+    background:linear-gradient(90deg,transparent,#8ff0ff,#fff,#8ff0ff,transparent); box-shadow:0 0 30px #8ff0ff; animation:flash .5s; }
+  @keyframes flash{ 0%{opacity:0;transform:translateY(-50%) scaleX(0);} 40%{opacity:1;transform:translateY(-50%) scaleX(1);} 100%{opacity:0;} }
+
+  /* 胜利弹层 */
+  .win{ position:fixed; inset:0; z-index:60; background:rgba(8,12,30,.9); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:20px; }
+  .win h2{ font-size:30px; color:#ffd54a; letter-spacing:2px; }
+  .win .card-reveal{ width:180px; }
+  .win .card-reveal svg{ width:100%; }
+  .win .card-name{ font-size:20px; font-weight:800; }
+  .win-btns{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+
+  /* 图鉴 */
+  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:100%; }
+  .card{ background:#1c2a55; border-radius:16px; padding:10px 6px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .card svg{ width:70px; height:auto; }
+  .card.locked svg{ filter:grayscale(1) brightness(.35); }
+  .card .c-py{ font-size:24px; font-weight:800; color:#ffd54a; }
+  .card.locked .c-py{ color:#3a4a7a; }
+  .card .c-no{ font-size:12px; opacity:.5; }
+  .count-line{ font-size:15px; opacity:.8; margin-bottom:14px; }
+</style>
+</head>
+<body>
+
+  <!-- 顶部条(地图/图鉴时显示) -->
+  <div class="topbar hidden" id="topbar">
+    <button id="backBtn">‹ 返回</button>
+    <span class="title" id="topTitle"></span>
+    <button id="dexBtn">图鉴</button>
+  </div>
+
+  <!-- 首页 -->
+  <div id="home" class="screen">
+    <div class="logo">拼音奥特曼<small>PINYIN ULTRA</small></div>
+    <button class="big-btn" id="startBtn">开始冒险</button>
+    <button class="ghost-btn" id="restartBtn">🔄 重新开始</button>
+    <button class="ghost-btn" id="homeDexBtn">🦸 我的图鉴</button>
+    <div style="opacity:.5;font-size:13px;margin-top:10px;text-align:center;line-height:1.6">
+      点字母听发音 · 打怪兽闯关 · 收集奥特曼卡片
+    </div>
+    <div style="opacity:.3;font-size:11px;margin-top:18px;text-align:center;line-height:1.5">
+      发音音频来自开源项目 audio-cmn (CC-BY-SA)<br>录音:Chen Wang & Yue Tan
+    </div>
+  </div>
+
+  <!-- 地图 -->
+  <div id="map" class="screen hidden"></div>
+
+  <!-- 关卡 -->
+  <div id="play" class="screen hidden">
+    <div class="prompt" id="prompt"></div>
+    <div id="learnArea"></div>
+    <div id="fightArea" class="hidden"></div>
+  </div>
+
+  <!-- 图鉴 -->
+  <div id="dex" class="screen hidden">
+    <div class="count-line" id="dexCount"></div>
+    <div class="grid" id="dexGrid"></div>
+  </div>
+
+  <!-- 光线特效层 -->
+  <div class="beam" id="beam"></div>
+
+  <!-- 胜利层 -->
+  <div class="win hidden" id="winLayer">
+    <h2>🎉 打败怪兽!</h2>
+    <div class="card-reveal" id="winCard"></div>
+    <div class="card-name" id="winName"></div>
+    <div class="win-btns">
+      <button class="big-btn" id="nextBtn" style="font-size:20px;padding:14px 34px">下一关 →</button>
+      <button class="ghost-btn" id="toMapBtn">回地图</button>
+    </div>
+  </div>
+
+<script>
+  // ========== 拼音数据(say = 用于发音的"呼读音"汉字,尽量准确) ==========
+  // type: 'single'单韵母(带声调) 'sm'声母 'compound'复韵母/鼻韵母
+  const WORLDS = [
+    { name:'第一关·单韵母', items:[
+      {id:'a',disp:'a',say:'啊',type:'single'},
+      {id:'o',disp:'o',say:'喔',type:'single'},
+      {id:'e',disp:'e',say:'鹅',type:'single'},
+      {id:'i',disp:'i',say:'衣',type:'single'},
+      {id:'u',disp:'u',say:'乌',type:'single'},
+      {id:'v',disp:'ü',say:'迂',type:'single'},
+    ]},
+    { name:'第二关·声母(上)', items:[
+      {id:'b',disp:'b',say:'玻'},{id:'p',disp:'p',say:'坡'},{id:'m',disp:'m',say:'摸'},{id:'f',disp:'f',say:'佛'},
+      {id:'d',disp:'d',say:'得'},{id:'t',disp:'t',say:'特'},{id:'n',disp:'n',say:'讷'},{id:'l',disp:'l',say:'勒'},
+    ]},
+    { name:'第三关·声母(中)', items:[
+      {id:'g',disp:'g',say:'哥'},{id:'k',disp:'k',say:'科'},{id:'h',disp:'h',say:'喝'},
+      {id:'j',disp:'j',say:'鸡'},{id:'q',disp:'q',say:'七'},{id:'x',disp:'x',say:'西'},
+    ]},
+    { name:'第四关·声母(下)', items:[
+      {id:'zh',disp:'zh',say:'知'},{id:'ch',disp:'ch',say:'吃'},{id:'sh',disp:'sh',say:'狮'},{id:'r',disp:'r',say:'日'},
+      {id:'z',disp:'z',say:'资'},{id:'c',disp:'c',say:'疵'},{id:'s',disp:'s',say:'丝'},
+      {id:'y',disp:'y',say:'医'},{id:'w',disp:'w',say:'屋'},
+    ]},
+    { name:'第五关·复韵母', items:[
+      {id:'ai',disp:'ai',say:'哀'},{id:'ei',disp:'ei',say:'诶'},{id:'ui',disp:'ui',say:'威'},
+      {id:'ao',disp:'ao',say:'熬'},{id:'ou',disp:'ou',say:'欧'},{id:'iu',disp:'iu',say:'忧'},
+      {id:'ie',disp:'ie',say:'耶'},{id:'ve',disp:'üe',say:'约'},{id:'er',disp:'er',say:'儿'},
+    ]},
+    { name:'第六关·鼻韵母', items:[
+      {id:'an',disp:'an',say:'安'},{id:'en',disp:'en',say:'恩'},{id:'in',disp:'in',say:'因'},
+      {id:'un',disp:'un',say:'温'},{id:'vn',disp:'ün',say:'晕'},
+      {id:'ang',disp:'ang',say:'昂'},{id:'eng',disp:'eng',say:'鞥'},{id:'ing',disp:'ing',say:'英'},{id:'ong',disp:'ong',say:'嗡'},
+    ]},
+  ];
+
+  // 展平成顺序关卡列表
+  const LEVELS = [];
+  WORLDS.forEach((w,wi)=> w.items.forEach(it=> LEVELS.push({...it, world:wi})));
+
+  // 四声的显示(仅单韵母用):基础字母 -> 四个带调形式
+  const TONE_MARKS = {
+    a:['ā','á','ǎ','à'], o:['ō','ó','ǒ','ò'], e:['ē','é','ě','è'],
+    i:['ī','í','ǐ','ì'], u:['ū','ú','ǔ','ù'], 'ü':['ǖ','ǘ','ǚ','ǜ'],
+  };
+
+  const MONSTER_EMOJI = ['👾','👹','👺','🐲','🦖','🦕','🐙','🦑','🐉','👽'];
+
+  // ========== 奥特曼头像(CSS/SVG 画,颜色按序号变化;真图以后可替换) ==========
+  function heroSVG(idx){
+    const hue = Math.round((idx*360/LEVELS.length));
+    const c = `hsl(${hue},75%,58%)`;
+    const c2 = `hsl(${hue},75%,42%)`;
+    return `<svg viewBox="0 0 120 150">
+      <defs><linearGradient id="g${idx}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#e6edf2"/><stop offset="1" stop-color="#aeb9c0"/></linearGradient></defs>
+      <rect x="46" y="96" width="28" height="42" rx="8" fill="url(#g${idx})" stroke="#8a969d"/>
+      <circle cx="60" cy="120" r="7" fill="${c}"/>
+      <ellipse cx="60" cy="58" rx="34" ry="42" fill="url(#g${idx})" stroke="#8a969d" stroke-width="2"/>
+      <path d="M60 10 L69 56 L51 56 Z" fill="${c}"/>
+      <path d="M60 14 L64 54 L56 54 Z" fill="${c2}"/>
+      <ellipse cx="46" cy="56" rx="9" ry="16" fill="#ffe680" transform="rotate(-16 46 56)"/>
+      <ellipse cx="74" cy="56" rx="9" ry="16" fill="#ffe680" transform="rotate(16 74 56)"/>
+      <rect x="53" y="82" width="14" height="3" rx="1.5" fill="#7c888f"/>
+    </svg>`;
+  }
+
+  // ========== 状态存取 ==========
+  function getUnlocked(){ return parseInt(localStorage.getItem('py_unlocked')||'0',10); }
+  function setUnlocked(v){ localStorage.setItem('py_unlocked', v); }
+  function getCards(){ try{ return JSON.parse(localStorage.getItem('py_cards')||'[]'); }catch(e){ return []; } }
+  function addCard(i){ const s=getCards(); if(!s.includes(i)){ s.push(i); localStorage.setItem('py_cards',JSON.stringify(s)); } }
+
+  // ========== 语音(真人录音优先,缺失时回退 TTS) ==========
+  // 录音来自开源项目 hugolpz/audio-cmn (CC-BY-SA)。放在同目录 audio/ 下。
+  const AUDIO_DIR = 'audio';
+  // 哪些 id 有录音文件(单韵母是 id+声调号,其余是 id 本身);ong 没有纯净录音→回退TTS
+  const HAS_AUDIO = new Set([
+    'a','o','e','i','u','v',                                   // 单韵母(实际用 a1..a4 等)
+    'b','p','m','f','d','t','n','l','g','k','h','j','q','x',
+    'zh','ch','sh','r','z','c','s','y','w',                    // 声母
+    'ai','ei','ui','ao','ou','iu','ie','ve','er',
+    'an','en','in','un','vn','ang','eng','ing'                 // 复韵母/鼻韵母(缺 ong)
+  ]);
+  const SINGLE_VOWELS = new Set(['a','o','e','i','u','v']);
+
+  let curAudio=null;
+  function unlockSpeech(){ if('speechSynthesis'in window){ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u);} }
+
+  // toneNum: 单韵母时指定第几声(1~4);不传时默认播第一声
+  function playSound(item, toneNum){
+    // 先停掉正在播的
+    if(curAudio){ try{curAudio.pause();}catch(e){} curAudio=null; }
+    if('speechSynthesis'in window) speechSynthesis.cancel();
+
+    let file=null;
+    if(HAS_AUDIO.has(item.id)){
+      if(SINGLE_VOWELS.has(item.id)){
+        file = `${AUDIO_DIR}/${item.id}${toneNum||1}.mp3`;   // a1.mp3 ...
+      }else{
+        file = `${AUDIO_DIR}/${item.id}.mp3`;                // b.mp3, ai.mp3 ...
+      }
+    }
+    if(file){
+      const a=new Audio(file);
+      curAudio=a;
+      a.play().catch(()=>ttsSpeak(item));   // 文件加载/播放失败→回退TTS
+      return;
+    }
+    ttsSpeak(item);                          // 无录音(如 ong)→TTS
+  }
+  function ttsSpeak(item){
+    if(!('speechSynthesis'in window)) return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(item.say);
+    u.lang='zh-CN'; u.rate=0.8; u.volume=1;
+    speechSynthesis.speak(u);
+  }
+  function praise(){ if(!('speechSynthesis'in window))return; const t=['太棒了','真厉害','答对了','好样的']; const u=new SpeechSynthesisUtterance(t[Math.floor(idxCounter++%t.length)]); u.lang='zh-CN'; u.rate=0.9; speechSynthesis.speak(u); }
+  let idxCounter=0;
+
+  // ========== 元素 ==========
+  const homeEl=document.getElementById('home');
+  const mapEl=document.getElementById('map');
+  const playEl=document.getElementById('play');
+  const dexEl=document.getElementById('dex');
+  const topbar=document.getElementById('topbar');
+  const topTitle=document.getElementById('topTitle');
+  const promptEl=document.getElementById('prompt');
+  const learnArea=document.getElementById('learnArea');
+  const fightArea=document.getElementById('fightArea');
+  const beamEl=document.getElementById('beam');
+  const winLayer=document.getElementById('winLayer');
+
+  function showScreen(el, showTop, title){
+    [homeEl,mapEl,playEl,dexEl].forEach(s=>s.classList.add('hidden'));
+    el.classList.remove('hidden');
+    topbar.classList.toggle('hidden', !showTop);
+    if(showTop) topTitle.textContent=title||'';
+    if(el===homeEl) refreshHome();
+  }
+
+  // 根据进度刷新首页按钮:有进度→继续冒险+显示重新开始;无进度→开始冒险
+  function refreshHome(){
+    const hasProgress = getUnlocked()>0 || getCards().length>0;
+    document.getElementById('startBtn').textContent = hasProgress ? '继续冒险' : '开始冒险';
+    document.getElementById('restartBtn').classList.toggle('hidden', !hasProgress);
+  }
+
+  // ========== 地图 ==========
+  function renderMap(){
+    const unlocked=getUnlocked(), cards=getCards();
+    mapEl.innerHTML='';
+    let base=0;
+    WORLDS.forEach((w)=>{
+      const wdiv=document.createElement('div'); wdiv.className='world';
+      const nm=document.createElement('div'); nm.className='world-name'; nm.textContent=w.name; wdiv.appendChild(nm);
+      const nodes=document.createElement('div'); nodes.className='nodes';
+      w.items.forEach((it,j)=>{
+        const gi=base+j;
+        const btn=document.createElement('button'); btn.className='node';
+        btn.innerHTML=`<span>${it.disp}</span>`;
+        if(cards.includes(gi)){ btn.classList.add('done'); btn.innerHTML+='<span class="star">⭐</span>'; }
+        else if(gi===unlocked){ btn.classList.add('current'); }
+        if(gi>unlocked){ btn.classList.add('locked'); btn.innerHTML=`<span>🔒</span>`; }
+        else btn.onclick=()=>startLevel(gi);
+        nodes.appendChild(btn);
+      });
+      wdiv.appendChild(nodes); mapEl.appendChild(wdiv);
+      base+=w.items.length;
+    });
+    showScreen(mapEl,true,'冒险地图');
+  }
+
+  // ========== 关卡:学习阶段 ==========
+  let currentLevel=0;
+  function startLevel(i){
+    currentLevel=i;
+    const item=LEVELS[i];
+    unlockSpeech();
+    fightArea.classList.add('hidden');
+    learnArea.classList.remove('hidden');
+    promptEl.textContent='跟着奥特曼一起读!';
+
+    let tonesHTML='';
+    if(item.type==='single'){
+      const marks=TONE_MARKS[item.disp]||[];
+      tonesHTML=`<div class="tones">`+marks.map(m=>`<div class="tone" data-tone="${m}">${m}</div>`).join('')+`</div>`;
+    }
+    learnArea.innerHTML=`
+      <div class="learn-card">
+        <div class="hero-box">${heroSVG(i)}</div>
+        <div class="py-big" id="pyBig">${item.disp}</div>
+      </div>
+      ${tonesHTML}
+      <div style="height:10px"></div>
+      <button class="speaker" id="speakBtn">🔊 再听一次</button>
+      <div style="height:16px"></div>
+      <button class="big-btn" id="goFight" style="font-size:22px;padding:15px 44px">去打怪兽 →</button>
+    `;
+    showScreen(playEl,true,item.disp);
+    // 自动读一次
+    setTimeout(()=>playSound(item),300);
+    document.getElementById('pyBig').onclick=()=>playSound(item);
+    document.getElementById('speakBtn').onclick=()=>playSound(item);
+    document.getElementById('goFight').onclick=()=>startFight(i);
+    if(item.type==='single'){
+      learnArea.querySelectorAll('.tone').forEach((t,ti)=>{
+        t.onclick=()=>{ t.style.transform='scale(1.15)'; setTimeout(()=>t.style.transform='',150); playSound(item, ti+1); };
+      });
+    }
+  }
+
+  // ========== 关卡:打怪兽阶段 ==========
+  function startFight(i){
+    const item=LEVELS[i];
+    learnArea.classList.add('hidden');
+    fightArea.classList.remove('hidden');
+    promptEl.textContent='';
+
+    // 干扰项:随机选 2 个别的拼音
+    const others=LEVELS.map((l,idx)=>idx).filter(idx=>idx!==i);
+    shuffle(others);
+    const optionIdx=[i, others[0], others[1]];
+    shuffle(optionIdx);
+
+    fightArea.innerHTML=`
+      <div class="prompt" style="font-size:22px;margin-bottom:6px">听发音,找出 <b style="color:#ffd54a;font-size:28px">${item.disp}</b> 的怪兽!</div>
+      <button class="speaker" id="replay">🔊 再听一次</button>
+      <div class="monsters" id="monsters"></div>
+    `;
+    const mwrap=document.getElementById('monsters');
+    optionIdx.forEach(oi=>{
+      const opt=LEVELS[oi];
+      const emoji=MONSTER_EMOJI[oi%MONSTER_EMOJI.length];
+      const b=document.createElement('button'); b.className='monster';
+      b.innerHTML=`<div class="m-emoji">${emoji}</div><div class="m-py">${opt.disp}</div>`;
+      b.onclick=()=>{
+        if(oi===i){
+          // 答对:光线特效 + 怪兽爆炸
+          beamEl.classList.add('on');
+          setTimeout(()=>beamEl.classList.remove('on'),500);
+          b.classList.add('dead');
+          praise();
+          setTimeout(()=>winLevel(i),700);
+        }else{
+          b.classList.add('wrong'); setTimeout(()=>b.classList.remove('wrong'),400);
+          playSound(item);
+        }
+      };
+      mwrap.appendChild(b);
+    });
+    setTimeout(()=>playSound(item),300);
+    document.getElementById('replay').onclick=()=>playSound(item);
+  }
+
+  // ========== 胜利 ==========
+  function winLevel(i){
+    addCard(i);
+    if(getUnlocked()===i) setUnlocked(i+1);
+    document.getElementById('winCard').innerHTML=heroSVG(i);
+    document.getElementById('winName').textContent=`获得卡片:${LEVELS[i].disp}  奥特曼  No.${i+1}`;
+    const hasNext = i+1 < LEVELS.length;
+    document.getElementById('nextBtn').style.display = hasNext ? '' : 'none';
+    winLayer.classList.remove('hidden');
+    document.getElementById('nextBtn').onclick=()=>{ winLayer.classList.add('hidden'); if(hasNext) startLevel(i+1); };
+    document.getElementById('toMapBtn').onclick=()=>{ winLayer.classList.add('hidden'); renderMap(); };
+  }
+
+  // ========== 图鉴 ==========
+  function renderDex(){
+    const cards=getCards();
+    document.getElementById('dexCount').textContent=`已收集 ${cards.length} / ${LEVELS.length} 张奥特曼卡片`;
+    const grid=document.getElementById('dexGrid'); grid.innerHTML='';
+    LEVELS.forEach((it,i)=>{
+      const got=cards.includes(i);
+      const c=document.createElement('div'); c.className='card'+(got?'':' locked');
+      c.innerHTML=`${heroSVG(i)}<div class="c-py">${got?it.disp:'?'}</div><div class="c-no">No.${i+1}</div>`;
+      if(got) c.onclick=()=>playSound(it);
+      grid.appendChild(c);
+    });
+    showScreen(dexEl,true,'奥特曼图鉴');
+  }
+
+  // ========== 工具 ==========
+  function shuffle(arr){ for(let k=arr.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [arr[k],arr[j]]=[arr[j],arr[k]]; } }
+
+  // ========== 导航绑定 ==========
+  document.getElementById('startBtn').onclick=()=>{ unlockSpeech(); renderMap(); };
+  document.getElementById('restartBtn').onclick=()=>{
+    if(confirm('确定要重新开始吗?\n已闯过的关卡和收集的奥特曼卡片都会清空哦!')){
+      localStorage.removeItem('py_unlocked');
+      localStorage.removeItem('py_cards');
+      refreshHome();
+      unlockSpeech();
+      renderMap();
+    }
+  };
+  document.getElementById('homeDexBtn').onclick=()=>{ renderDex(); };
+  document.getElementById('dexBtn').onclick=()=>renderDex();
+  document.getElementById('backBtn').onclick=()=>{
+    // 从关卡/图鉴返回地图;从地图返回首页
+    if(!dexEl.classList.contains('hidden') || !playEl.classList.contains('hidden')) renderMap();
+    else showScreen(homeEl,false);
+  };
+
+  showScreen(homeEl,false);
+</script>
+</body>
+</html>
