@@ -76,6 +76,44 @@
     background:linear-gradient(90deg,transparent,#8ff0ff,#fff,#8ff0ff,transparent); box-shadow:0 0 30px #8ff0ff; animation:flash .5s; }
   @keyframes flash{ 0%{opacity:0;transform:translateY(-50%) scaleX(0);} 40%{opacity:1;transform:translateY(-50%) scaleX(1);} 100%{opacity:0;} }
 
+  /* ===== 成功特效:火箭升空 + 烟花 ===== */
+  .fx-success{ position:fixed; inset:0; z-index:55; pointer-events:none; overflow:hidden;
+    background:radial-gradient(circle at 50% 120%, rgba(30,50,110,.6), rgba(8,12,30,.85)); }
+  .rocket{ position:absolute; left:50%; bottom:-80px; font-size:70px; transform:translateX(-50%);
+    animation:launch 1.8s cubic-bezier(.4,0,.7,1) forwards; filter:drop-shadow(0 0 14px #ffca6b); }
+  @keyframes launch{
+    0%{ bottom:-80px; transform:translateX(-50%) scale(.8) rotate(-8deg); opacity:0; }
+    12%{ opacity:1; }
+    70%{ bottom:75%; transform:translateX(-50%) scale(1.1) rotate(-8deg); opacity:1; }
+    100%{ bottom:115%; transform:translateX(-50%) scale(1) rotate(-8deg); opacity:0; }
+  }
+  .fireworks{ position:absolute; inset:0; }
+  .fw{ position:absolute; width:8px; height:8px; border-radius:50%; opacity:0; }
+  @keyframes burst{
+    0%{ transform:translate(0,0) scale(1); opacity:1; }
+    100%{ transform:translate(var(--dx),var(--dy)) scale(.3); opacity:0; }
+  }
+  .fw-core{ position:absolute; width:14px; height:14px; border-radius:50%; opacity:0;
+    box-shadow:0 0 24px 8px currentColor; animation:coreflash .5s ease-out forwards; }
+  @keyframes coreflash{ 0%{opacity:1;transform:scale(.3);} 60%{opacity:1;transform:scale(1.3);} 100%{opacity:0;} }
+
+  /* ===== 失败特效:奥特曼石化 ===== */
+  .fx-fail{ position:fixed; inset:0; z-index:55; pointer-events:none;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+    background:rgba(8,12,30,.55); }
+  .petrify{ width:150px; }
+  .petrify svg{ width:100%; height:auto; animation:stone 1.2s ease-in forwards; }
+  @keyframes stone{
+    0%{ filter:none; transform:scale(1); }
+    25%{ filter:brightness(1.4) drop-shadow(0 0 12px #6fe0ff); transform:scale(1.04) translateX(-2px); }
+    30%{ transform:scale(1.04) translateX(3px); }
+    35%{ transform:scale(1.04) translateX(-3px); }
+    40%{ transform:scale(1.02) translateX(0); }
+    100%{ filter:grayscale(1) brightness(.55) contrast(.8); transform:scale(.97); }
+  }
+  .fail-word{ color:#b9c4d6; font-size:22px; letter-spacing:2px; opacity:0; animation:fadein .6s .5s forwards; }
+  @keyframes fadein{ to{ opacity:1; } }
+
   /* 胜利弹层 */
   .win{ position:fixed; inset:0; z-index:60; background:rgba(8,12,30,.9); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:20px; }
   .win h2{ font-size:30px; color:#ffd54a; letter-spacing:2px; }
@@ -136,6 +174,18 @@
 
   <!-- 光线特效层 -->
   <div class="beam" id="beam"></div>
+
+  <!-- 成功特效层:火箭+烟花 -->
+  <div class="fx-success hidden" id="fxSuccess">
+    <div class="rocket" id="rocket">🚀</div>
+    <div class="fireworks" id="fireworks"></div>
+  </div>
+
+  <!-- 失败特效层:奥特曼石化 -->
+  <div class="fx-fail hidden" id="fxFail">
+    <div class="petrify" id="petrify"></div>
+    <div class="fail-word">能量耗尽…再试一次!</div>
+  </div>
 
   <!-- 胜利层 -->
   <div class="win hidden" id="winLayer">
@@ -388,21 +438,75 @@
       b.innerHTML=`<div class="m-emoji">${emoji}</div><div class="m-py">${opt.disp}</div>`;
       b.onclick=()=>{
         if(oi===i){
-          // 答对:光线特效 + 怪兽爆炸
+          // 答对:光线击爆怪兽 → 火箭+烟花特效 → 胜利卡片
           beamEl.classList.add('on');
           setTimeout(()=>beamEl.classList.remove('on'),500);
           b.classList.add('dead');
           praise();
-          setTimeout(()=>winLevel(i),700);
+          mwrap.style.pointerEvents='none';   // 防止连点
+          setTimeout(()=>playSuccessFX(()=>winLevel(i)), 600);
         }else{
+          // 答错:怪兽抖动 + 奥特曼石化特效,然后重读让孩子再试
           b.classList.add('wrong'); setTimeout(()=>b.classList.remove('wrong'),400);
-          playSound(item);
+          mwrap.style.pointerEvents='none';
+          playFailFX(i, ()=>{ mwrap.style.pointerEvents=''; playSound(item); });
         }
       };
       mwrap.appendChild(b);
     });
     setTimeout(()=>playSound(item),300);
     document.getElementById('replay').onclick=()=>playSound(item);
+  }
+
+  // ========== 成功/失败特效 ==========
+  const fxSuccess=document.getElementById('fxSuccess');
+  const fxFail=document.getElementById('fxFail');
+  const fireworksEl=document.getElementById('fireworks');
+  const petrifyEl=document.getElementById('petrify');
+  const FW_COLORS=['#ff6b6b','#ffd54a','#5fd0ff','#7CFC98','#ff9ff3','#ffa94d'];
+
+  // 生成一朵烟花(在 x%,y% 处爆开 n 个粒子)
+  function spawnFirework(xPct,yPct){
+    const color=FW_COLORS[Math.floor(Math.random()*FW_COLORS.length)];
+    // 核心闪光
+    const core=document.createElement('div'); core.className='fw-core';
+    core.style.left=xPct+'%'; core.style.top=yPct+'%'; core.style.color=color;
+    fireworksEl.appendChild(core);
+    setTimeout(()=>core.remove(),600);
+    // 四散粒子
+    const n=16;
+    for(let k=0;k<n;k++){
+      const p=document.createElement('div'); p.className='fw';
+      const ang=(k/n)*Math.PI*2;
+      const dist=60+Math.random()*50;
+      p.style.left=xPct+'%'; p.style.top=yPct+'%';
+      p.style.background=color;
+      p.style.setProperty('--dx',(Math.cos(ang)*dist)+'px');
+      p.style.setProperty('--dy',(Math.sin(ang)*dist)+'px');
+      p.style.animation=`burst ${0.8+Math.random()*0.5}s ease-out forwards`;
+      fireworksEl.appendChild(p);
+      setTimeout(()=>p.remove(),1400);
+    }
+  }
+
+  // 成功特效:火箭升空 + 连续烟花,done 回调在结束后触发
+  function playSuccessFX(done){
+    fireworksEl.innerHTML='';
+    fxSuccess.classList.remove('hidden');
+    // 重启火箭动画
+    const rk=document.getElementById('rocket');
+    rk.style.animation='none'; void rk.offsetWidth; rk.style.animation='';
+    // 错落放几朵烟花
+    const shots=[[30,35],[65,28],[50,50],[22,55],[78,52],[45,22]];
+    shots.forEach((pos,idx)=> setTimeout(()=>spawnFirework(pos[0],pos[1]), 500+idx*230));
+    setTimeout(()=>{ fxSuccess.classList.add('hidden'); if(done) done(); }, 1900);
+  }
+
+  // 失败特效:奥特曼石化,done 回调在结束后触发
+  function playFailFX(heroIdx, done){
+    petrifyEl.innerHTML=heroSVG(heroIdx);
+    fxFail.classList.remove('hidden');
+    setTimeout(()=>{ fxFail.classList.add('hidden'); if(done) done(); }, 1500);
   }
 
   // ========== 胜利 ==========
