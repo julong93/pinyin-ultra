@@ -165,21 +165,91 @@
   @keyframes fadein{ to{ opacity:1; } }
 
   /* 胜利弹层 */
-  .win{ position:fixed; inset:0; z-index:60; background:rgba(8,12,30,.9); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:20px; }
+  .win{ position:fixed; inset:0; z-index:60; background:rgba(8,12,30,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:20px; }
   .win h2{ font-size:30px; color:#ffd54a; letter-spacing:2px; }
   .win .card-reveal{ width:180px; }
   .win .card-reveal svg{ width:100%; }
   .win .card-name{ font-size:20px; font-weight:800; }
   .win-btns{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
 
+  /* ===== 抽卡:卡带滚动 + 翻转揭晓 ===== */
+  .gacha{ width:100%; display:flex; justify-content:center; }
+  .gacha.hideout{ opacity:0; transform:scale(.85); transition:opacity .4s, transform .4s; }
+  .gacha-viewport{ position:relative; width:min(380px,94vw); height:150px; overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent); }
+  .gacha-strip{ display:flex; height:100%; align-items:center; will-change:transform; }
+  /* 卡片用固定宽高比(5:7),内容 object-fit:contain,后期换图片素材绝不拉伸 */
+  .gcard{ flex:0 0 60px; aspect-ratio:5/7; margin:0 8px; perspective:600px; }
+  .gcard-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; }
+  .gcard-back,.gcard-front{ position:absolute; inset:0; border-radius:12px; overflow:hidden;
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .gcard-back{ font-size:32px; font-weight:900; color:rgba(255,255,255,.9);
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.25); }
+  .gacha-marker{ position:absolute; left:50%; top:50%; width:74px; height:106px;
+    transform:translate(-50%,-50%); border:3px solid #ffd54a; border-radius:14px;
+    box-shadow:0 0 16px rgba(255,213,74,.6); pointer-events:none; }
+  .gacha.done .gacha-marker{ opacity:0; transition:opacity .3s; }
+
+  /* 揭晓大卡:放大居中 + 翻转 */
+  .big-card{ width:min(210px,58vw); aspect-ratio:5/7; perspective:1000px; }
+  .bc-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; }
+  .bc-inner.play{ animation:cardPop .9s cubic-bezier(.2,1.2,.4,1) forwards; }
+  @keyframes cardPop{
+    0%{ transform:rotateY(0deg) scale(.2); opacity:0; }
+    35%{ opacity:1; }
+    72%{ transform:rotateY(180deg) scale(1.12); }
+    100%{ transform:rotateY(180deg) scale(1); opacity:1; }
+  }
+  .bc-back,.bc-front{ position:absolute; inset:0; border-radius:18px; overflow:hidden;
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .bc-back{ font-size:72px; font-weight:900; color:#fff; box-shadow:inset 0 0 0 4px rgba(255,255,255,.3);
+    background:linear-gradient(160deg,#4a63a8,#26356a); }
+  .bc-front{ transform:rotateY(180deg); background:#1c2a55;
+    box-shadow:0 0 34px 6px #ffd54a, inset 0 0 0 4px #ffd54a; }
+  /* 图形/图片按比例显示,绝不拉伸 */
+  .bc-front svg{ width:72%; height:auto; }
+  .bc-front img{ width:100%; height:100%; object-fit:contain; }
+  .bc-front .bc-py{ font-size:24px; font-weight:800; color:#ffd54a; margin-top:6px; }
+
+  /* 稀有卡:四周熠熠生辉(外发光呼吸 + 闪光星星) */
+  .big-card{ position:relative; }
+  .big-card.rare{ border-radius:18px; animation:rareHalo 1.3s ease-in-out infinite; }
+  @keyframes rareHalo{
+    0%,100%{ box-shadow:0 0 18px 5px rgba(255,213,74,.55), 0 0 38px 12px rgba(255,213,74,.28); }
+    50%{ box-shadow:0 0 40px 14px rgba(255,232,140,.95), 0 0 76px 30px rgba(255,213,74,.5); }
+  }
+  .bc-front.rareglow{ animation:none; }  /* 发光交给外层 rareHalo */
+  /* 四周闪光星星 */
+  .sparkles{ position:absolute; inset:-28px; pointer-events:none; z-index:4; }
+  .spk{ position:absolute; opacity:0; filter:drop-shadow(0 0 5px #ffe680); animation:spk .9s ease-out forwards; }
+  @keyframes spk{
+    0%{ opacity:0; transform:scale(.2) rotate(0deg); }
+    40%{ opacity:1; transform:scale(1.15) rotate(20deg); }
+    100%{ opacity:0; transform:scale(.5) rotate(45deg); }
+  }
+  .rare-tag{ position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(90deg,#ff8a3d,#ffd54a); color:#5a3200; font-weight:900; font-size:14px;
+    padding:4px 14px; border-radius:20px; letter-spacing:1px; white-space:nowrap;
+    box-shadow:0 3px 10px rgba(0,0,0,.4); z-index:5; }
+
+  /* 胜利层烟花容器 */
+  .win-fw{ position:absolute; inset:0; pointer-events:none; z-index:2; }
+
   /* 图鉴 */
   .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:100%; }
-  .card{ background:#1c2a55; border-radius:16px; padding:10px 6px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .card{ background:#1c2a55; border-radius:16px; padding:10px 6px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; position:relative; }
   .card svg{ width:70px; height:auto; }
   .card.locked svg{ filter:grayscale(1) brightness(.35); }
   .card .c-py{ font-size:24px; font-weight:800; color:#ffd54a; }
   .card.locked .c-py{ color:#3a4a7a; }
   .card .c-no{ font-size:12px; opacity:.5; }
+  /* 图鉴稀有卡:金色边框 + 星角标 */
+  .card.rare{ background:linear-gradient(160deg,#3a2f10,#241c33); box-shadow:0 0 0 2px #ffd54a, 0 0 14px rgba(255,213,74,.5); }
+  .card.rare.locked{ box-shadow:0 0 0 2px #6b5a2a; }
+  .card .c-star{ position:absolute; top:4px; right:6px; font-size:14px; }
   .count-line{ font-size:15px; opacity:.8; margin-bottom:14px; }
 </style>
 </head>
@@ -248,10 +318,24 @@
 
   <!-- 胜利层 -->
   <div class="win hidden" id="winLayer">
-    <h2>🎉 打败怪兽!</h2>
-    <div class="card-reveal" id="winCard"></div>
-    <div class="card-name" id="winName"></div>
-    <div class="win-btns">
+    <div class="win-fw" id="winFw"></div>
+    <h2 id="winTitle">✨ 开启卡片 ✨</h2>
+    <!-- 抽卡区:卡带滚动 → 定位 → 翻转揭晓 -->
+    <div class="gacha" id="gacha">
+      <div class="gacha-viewport">
+        <div class="gacha-strip" id="gachaStrip"></div>
+        <div class="gacha-marker"></div>
+      </div>
+    </div>
+    <!-- 揭晓大卡:跳出轮播框、放大居中展示 -->
+    <div class="big-card hidden" id="bigCard">
+      <div class="bc-inner" id="bcInner">
+        <div class="bc-back">?</div>
+        <div class="bc-front" id="bcFront"></div>
+      </div>
+    </div>
+    <div class="card-name" id="winName" style="visibility:hidden"></div>
+    <div class="win-btns" id="winBtns" style="visibility:hidden">
       <button class="big-btn" id="nextBtn" style="font-size:20px;padding:14px 34px">下一关 →</button>
       <button class="ghost-btn" id="toMapBtn">回地图</button>
     </div>
@@ -570,12 +654,13 @@
   const FW_COLORS=['#ff6b6b','#ffd54a','#5fd0ff','#7CFC98','#ff9ff3','#ffa94d','#fff'];
   const ROCKET_EMOJI=['🚀','🚀','🌟'];
 
-  // 生成一朵烟花(在 x%,y% 处爆开)
-  function spawnFirework(xPct,yPct){
+  // 生成一朵烟花(在 x%,y% 处爆开);host 指定容器,默认成功特效层
+  function spawnFirework(xPct,yPct,host){
+    host = host || fireworksEl;
     const color=FW_COLORS[Math.floor(Math.random()*FW_COLORS.length)];
     const core=document.createElement('div'); core.className='fw-core';
     core.style.left=xPct+'%'; core.style.top=yPct+'%'; core.style.color=color;
-    fireworksEl.appendChild(core);
+    host.appendChild(core);
     setTimeout(()=>core.remove(),600);
     const n=22;
     for(let k=0;k<n;k++){
@@ -587,7 +672,7 @@
       p.style.setProperty('--dx',(Math.cos(ang)*dist)+'px');
       p.style.setProperty('--dy',(Math.sin(ang)*dist)+'px');
       p.style.animation=`burst ${0.9+Math.random()*0.6}s ease-out forwards`;
-      fireworksEl.appendChild(p);
+      host.appendChild(p);
       setTimeout(()=>p.remove(),1600);
     }
   }
@@ -668,7 +753,44 @@
     }catch(e){}
   }
 
-  // 失败特效:能量爆散→石化裂纹→崩塌+灰烬+震屏,done 结束后触发
+  // 欢呼音效:滤波白噪声模拟人群欢呼 + 上扬号角琶音(稀有卡揭晓用)
+  function cheerSound(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==='suspended') audioCtx.resume();
+      const t=audioCtx.currentTime;
+      // 人群欢呼:白噪声经带通滤波,音量起伏
+      const dur=2.0;
+      const buf=audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate*dur), audioCtx.sampleRate);
+      const data=buf.getChannelData(0);
+      for(let n=0;n<data.length;n++){
+        // 叠加缓慢起伏,模拟人群此起彼伏
+        const env=0.6+0.4*Math.sin(n/audioCtx.sampleRate*13);
+        data[n]=(Math.random()*2-1)*env;
+      }
+      const src=audioCtx.createBufferSource(); src.buffer=buf;
+      const bp=audioCtx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1300; bp.Q.value=0.6;
+      const g=audioCtx.createGain();
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.linearRampToValueAtTime(0.32,t+0.15);
+      g.gain.linearRampToValueAtTime(0.26,t+1.2);
+      g.gain.linearRampToValueAtTime(0.0001,t+dur);
+      src.connect(bp).connect(g).connect(audioCtx.destination);
+      src.start(t); src.stop(t+dur);
+      // 上扬号角琶音 C-E-G-C,营造"稀有揭晓"仪式感
+      const notes=[523.25,659.25,783.99,1046.5];
+      notes.forEach((f,idx)=>{
+        const o=audioCtx.createOscillator(); const og=audioCtx.createGain();
+        o.type='triangle'; o.frequency.value=f;
+        const st=t+idx*0.13;
+        og.gain.setValueAtTime(0.0001,st);
+        og.gain.exponentialRampToValueAtTime(0.26,st+0.03);
+        og.gain.exponentialRampToValueAtTime(0.0001,st+0.55);
+        o.connect(og).connect(audioCtx.destination);
+        o.start(st); o.stop(st+0.6);
+      });
+    }catch(e){}
+  }
   function playFailFX(heroIdx, done){
     failSound();                          // 失败音效,与动效同步
     petrifyEl.innerHTML=heroSVG(heroIdx);
@@ -715,17 +837,134 @@
     setTimeout(()=>{ fxFail.classList.add('hidden'); if(done) done(); }, 2100);
   }
 
-  // ========== 胜利 ==========
+  // ========== 胜利:抽卡开箱效果 ==========
+  const gachaEl=document.getElementById('gacha');
+  const gachaStrip=document.getElementById('gachaStrip');
+  const bigCard=document.getElementById('bigCard');
+  const bcInner=document.getElementById('bcInner');
+  const bcFront=document.getElementById('bcFront');
+  const winFwEl=document.getElementById('winFw');
+  const CARD_STEP=76;        // 每张卡占位宽(卡60 + 左右margin各8)
+  const TARGET_POS=32;       // 目标卡在卡带中的位置(留足前面的滚动距离)
+  // 稀有卡:固定 7 个关卡(每个世界都分到,分布均匀),抽到时额外触发烟花+欢呼+发光
+  const RARE_LEVELS = new Set([5, 9, 17, 24, 31, 40, 45]);
+
+  // 卡片正面内容 —— 后期换成图片素材,只需改这里(用 <img> + CSS object-fit 保证不拉伸)
+  function cardFaceHTML(i){
+    // 素材包到位后改为:return `<img src="cards/${LEVELS[i].id}.png" alt="">`;
+    return `${heroSVG(i)}<div class="bc-py">${LEVELS[i].disp} · No.${i+1}</div>`;
+  }
+
+  // 稀有卡:四周持续冒出闪光星星
+  const SPARKLE_STARS=['✨','⭐','✦','🌟','❇️'];
+  let rareSparkleTimer=null;
+  function spawnSparkle(host){
+    const s=document.createElement('span'); s.className='spk';
+    s.textContent=SPARKLE_STARS[Math.floor(Math.random()*SPARKLE_STARS.length)];
+    s.style.fontSize=(10+Math.random()*16)+'px';
+    // 集中在卡片四周边缘(随机选一条边),不遮挡卡面
+    const edge=Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){ x=Math.random()*100; y=Math.random()*16; }
+    else if(edge===1){ x=Math.random()*100; y=84+Math.random()*16; }
+    else if(edge===2){ x=Math.random()*16; y=Math.random()*100; }
+    else { x=84+Math.random()*16; y=Math.random()*100; }
+    s.style.left=x+'%'; s.style.top=y+'%';
+    host.appendChild(s);
+    setTimeout(()=>s.remove(),900);
+  }
+  function stopRareFX(){
+    if(rareSparkleTimer){ clearInterval(rareSparkleTimer); rareSparkleTimer=null; }
+    const sp=document.getElementById('sparkles'); if(sp) sp.remove();
+  }
+
   function winLevel(i){
     addCard(i);
     if(getUnlocked()===i) setUnlocked(i+1);
-    document.getElementById('winCard').innerHTML=heroSVG(i);
-    document.getElementById('winName').textContent=`获得卡片:${LEVELS[i].disp}  奥特曼  No.${i+1}`;
     const hasNext = i+1 < LEVELS.length;
-    document.getElementById('nextBtn').style.display = hasNext ? '' : 'none';
+    const isRare = RARE_LEVELS.has(i);
+
+    // 复位界面
+    document.getElementById('winTitle').textContent='✨ 开启卡片 ✨';
+    document.getElementById('winName').style.visibility='hidden';
+    document.getElementById('winBtns').style.visibility='hidden';
+    gachaEl.classList.remove('hideout','done');
+    bigCard.classList.add('hidden');
+    bigCard.classList.remove('rare');
+    bcInner.classList.remove('play');
+    bcFront.classList.remove('rareglow');
+    winFwEl.innerHTML='';
+    stopRareFX();
+    const oldTag=document.getElementById('rareTag'); if(oldTag) oldTag.remove();
+
+    // 生成卡带:大量神秘卡背
+    const total=TARGET_POS+6;
+    let html='';
+    for(let k=0;k<total;k++){
+      const hue = Math.floor(Math.random()*360);
+      const backBg = `linear-gradient(160deg,hsl(${hue},70%,52%),hsl(${(hue+40)%360},70%,38%))`;
+      html+=`<div class="gcard"><div class="gcard-inner">
+          <div class="gcard-back" style="background:${backBg}">?</div>
+        </div></div>`;
+    }
+    gachaStrip.innerHTML=html;
+
     winLayer.classList.remove('hidden');
-    document.getElementById('nextBtn').onclick=()=>{ winLayer.classList.add('hidden'); if(hasNext) startLevel(i+1); };
-    document.getElementById('toMapBtn').onclick=()=>{ winLayer.classList.add('hidden'); renderMap(); };
+
+    // 起点:无过渡瞬间归零
+    gachaStrip.style.transition='none';
+    gachaStrip.style.transform='translateX(0)';
+    void gachaStrip.offsetWidth;
+
+    // 让目标卡停在中间选中框
+    const vpW=gachaStrip.parentElement.clientWidth;
+    const targetCenter = TARGET_POS*CARD_STEP + CARD_STEP/2;
+    const jitter = (Math.random()*30-15);
+    const endX = vpW/2 - targetCenter + jitter;
+    gachaStrip.style.transition='transform 2.6s cubic-bezier(.12,.62,.2,1)';
+    gachaStrip.style.transform=`translateX(${endX}px)`;
+
+    // 滚动结束 → 轮播框收起 → 大卡跳出放大翻转
+    setTimeout(()=>{
+      gachaEl.classList.add('done','hideout');
+      bcFront.innerHTML=cardFaceHTML(i);
+      bigCard.classList.remove('hidden');
+      void bcInner.offsetWidth;
+      bcInner.classList.add('play');
+
+      if(isRare){
+        // 稀有卡:翻面完成瞬间 → 欢呼 + 烟花 + 四周熠熠生辉(持续闪光)
+        setTimeout(()=>{
+          cheerSound();
+          bigCard.classList.add('rare');       // 外发光呼吸
+          // 稀有角标
+          const tag=document.createElement('div'); tag.className='rare-tag'; tag.id='rareTag';
+          tag.textContent='⭐ 稀有卡 ⭐'; bigCard.appendChild(tag);
+          // 四周持续闪光星星
+          const sp=document.createElement('div'); sp.className='sparkles'; sp.id='sparkles';
+          bigCard.appendChild(sp);
+          rareSparkleTimer=setInterval(()=>{ spawnSparkle(sp); spawnSparkle(sp); }, 130);
+          // 卡片四周连环烟花
+          const shots=[[30,30],[70,28],[50,18],[25,55],[75,52],[50,45]];
+          shots.forEach((p,idx)=> setTimeout(()=>spawnFirework(p[0],p[1],winFwEl), idx*180));
+        }, 820);
+      }else{
+        praise();
+      }
+
+      // 大卡弹出完成 → 文字与按钮(稀有卡稍晚,让特效先亮相)
+      setTimeout(()=>{
+        document.getElementById('winTitle').textContent = isRare ? '🌟 稀有卡 GET! 🌟' : '🎉 获得卡片!';
+        const nm=document.getElementById('winName');
+        nm.textContent=`${LEVELS[i].disp}  奥特曼  ·  No.${i+1}`;
+        nm.style.visibility='visible';
+        document.getElementById('nextBtn').style.display = hasNext ? '' : 'none';
+        document.getElementById('winBtns').style.visibility='visible';
+      }, isRare ? 2400 : 950);
+    }, 2750);
+
+    document.getElementById('nextBtn').onclick=()=>{ stopRareFX(); winLayer.classList.add('hidden'); if(hasNext) startLevel(i+1); };
+    document.getElementById('toMapBtn').onclick=()=>{ stopRareFX(); winLayer.classList.add('hidden'); renderMap(); };
   }
 
   // ========== 图鉴 ==========
@@ -735,8 +974,10 @@
     const grid=document.getElementById('dexGrid'); grid.innerHTML='';
     LEVELS.forEach((it,i)=>{
       const got=cards.includes(i);
-      const c=document.createElement('div'); c.className='card'+(got?'':' locked');
-      c.innerHTML=`${heroSVG(i)}<div class="c-py">${got?it.disp:'?'}</div><div class="c-no">No.${i+1}</div>`;
+      const rare=RARE_LEVELS.has(i);
+      const c=document.createElement('div'); c.className='card'+(got?'':' locked')+(rare?' rare':'');
+      const star = rare ? '<div class="c-star">⭐</div>' : '';
+      c.innerHTML=`${star}${heroSVG(i)}<div class="c-py">${got?it.disp:'?'}</div><div class="c-no">No.${i+1}</div>`;
       if(got) c.onclick=()=>playSound(it);
       grid.appendChild(c);
     });
