@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>拼音奥特曼</title>
+<title>奥美迦学拼音</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { height:100%; }
@@ -27,6 +27,16 @@
     background:linear-gradient(90deg,#ffd54a,#ff7676,#5fd0ff); -webkit-background-clip:text; background-clip:text; color:transparent;
     filter:drop-shadow(0 3px 10px rgba(0,0,0,.4)); }
   .logo small{ display:block; font-size:18px; -webkit-text-fill-color:#cfe0ff; margin-top:6px; letter-spacing:6px; }
+  /* 应援跑马灯 */
+  .marquee{ width:100%; max-width:480px; overflow:hidden; white-space:nowrap; margin:6px 0 24px;
+    border-top:1px solid rgba(255,213,74,.25); border-bottom:1px solid rgba(255,213,74,.25); padding:8px 0;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent); }
+  .marquee-track{ display:inline-block; white-space:nowrap; animation:marq 22s linear infinite;
+    font-size:17px; font-weight:700; color:#ffd54a; text-shadow:0 0 8px rgba(255,213,74,.4); }
+  .marquee-track span{ margin:0 6px; }
+  .marquee-track .sep{ color:#5fd0ff; margin:0 14px; }
+  @keyframes marq{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
   .big-btn{ font-size:26px; font-weight:800; padding:18px 56px; border:none; border-radius:50px; cursor:pointer;
     background:linear-gradient(90deg,#ff8a3d,#ff5f6d); color:#fff; box-shadow:0 8px 24px rgba(255,95,109,.45); letter-spacing:3px; }
   .big-btn:active{ transform:translateY(2px); }
@@ -292,7 +302,8 @@
 
   <!-- 首页 -->
   <div id="home" class="screen">
-    <div class="logo">拼音奥特曼<small>PINYIN ULTRA</small></div>
+    <div class="logo">奥美迦学拼音<small>PINYIN ULTRA</small></div>
+    <div class="marquee"><div class="marquee-track" id="marqueeTrack"></div></div>
     <button class="big-btn" id="startBtn">开始冒险</button>
     <button class="ghost-btn" id="restartBtn">🔄 重新开始</button>
     <button class="ghost-btn" id="homeDexBtn">🦸 我的图鉴</button>
@@ -374,7 +385,7 @@
     <div class="ms-fw" id="msFw"></div>
     <div class="ms-trophy">🏆</div>
     <div class="ms-title">传说收藏家!</div>
-    <div class="ms-sub">你已集齐全部 7 张稀有卡 ✨</div>
+    <div class="ms-sub">你已集齐全部 9 张稀有卡 ✨</div>
     <button class="big-btn" id="msBtn">太厉害啦!</button>
   </div>
 
@@ -412,6 +423,13 @@
       {id:'an',disp:'an',say:'安'},{id:'en',disp:'en',say:'恩'},{id:'in',disp:'in',say:'因'},
       {id:'un',disp:'un',say:'温'},{id:'vn',disp:'ün',say:'晕'},
       {id:'ang',disp:'ang',say:'昂'},{id:'eng',disp:'eng',say:'鞥'},{id:'ing',disp:'ing',say:'英'},{id:'ong',disp:'ong',say:'嗡'},
+    ]},
+    { name:'第七关·整体认读', items:[
+      {id:'zhi',disp:'zhi',say:'知'},{id:'chi',disp:'chi',say:'吃'},{id:'shi',disp:'shi',say:'狮'},{id:'ri',disp:'ri',say:'日'},
+      {id:'zi',disp:'zi',say:'资'},{id:'ci',disp:'ci',say:'疵'},{id:'si',disp:'si',say:'丝'},
+      {id:'yi',disp:'yi',say:'衣'},{id:'wu',disp:'wu',say:'乌'},{id:'yu',disp:'yu',say:'迂'},
+      {id:'ye',disp:'ye',say:'耶'},{id:'yue',disp:'yue',say:'约'},{id:'yin',disp:'yin',say:'因'},
+      {id:'yun',disp:'yun',say:'晕'},{id:'yuan',disp:'yuan',say:'冤'},{id:'ying',disp:'ying',say:'英'},
     ]},
   ];
 
@@ -463,10 +481,12 @@
   // ========== 语音(真人录音优先,缺失时回退 TTS) ==========
   // 录音来自开源项目 hugolpz/audio-cmn (CC-BY-SA)。放在同目录 audio/ 下。
   const AUDIO_DIR = 'audio';
-  // 声母(23个):只有单个录音文件,无声调
+  // 单个录音文件、无声调的音节:声母(23) + 整体认读音节(16)
   const SM_AUDIO = new Set([
     'b','p','m','f','d','t','n','l','g','k','h','j','q','x',
-    'zh','ch','sh','r','z','c','s','y','w'
+    'zh','ch','sh','r','z','c','s','y','w',
+    'zhi','chi','shi','ri','zi','ci','si','yi','wu','yu',
+    'ye','yue','yin','yun','yuan','ying'
   ]);
 
   let curAudio=null;
@@ -883,8 +903,8 @@
   const winFwEl=document.getElementById('winFw');
   const CARD_STEP=76;        // 每张卡占位宽(卡60 + 左右margin各8)
   const TARGET_POS=32;       // 目标卡在卡带中的位置(留足前面的滚动距离)
-  // 稀有卡:固定 7 个关卡(每个世界都分到,分布均匀),抽到时额外触发烟花+欢呼+发光
-  const RARE_LEVELS = new Set([5, 9, 17, 24, 31, 40, 45]);
+  // 稀有卡:固定 9 个关卡(7 个世界都分到,分布均匀),抽到时额外触发烟花+欢呼+熠熠生辉
+  const RARE_LEVELS = new Set([5, 11, 17, 24, 31, 40, 45, 52, 59]);
 
   // 卡片正面内容 —— 后期换成图片素材,只需改这里(用 <img> + CSS object-fit 保证不拉伸)
   function cardFaceHTML(i){
@@ -1077,6 +1097,22 @@
     if(!dexEl.classList.contains('hidden') || !playEl.classList.contains('hidden')) renderMap();
     else showScreen(homeEl,false);
   };
+
+  // 首页应援跑马灯
+  const MARQUEE_TEXTS = [
+    '奥美迦变身-青龙装甲',
+    '周冉周冉棒!棒!棒!',
+    '哉佩利敖光线!',
+    '奥利给冲冲冲,撒班,班班班',
+    '奥美迦变身-朱雀装甲',
+    '周周,周周巴啦啦变身~~',
+  ];
+  (function initMarquee(){
+    const track=document.getElementById('marqueeTrack');
+    const one = MARQUEE_TEXTS.map(t=>`<span>${t}</span>`).join('<span class="sep">✦</span>');
+    // 重复两遍,配合 translateX(-50%) 实现无缝循环
+    track.innerHTML = one + '<span class="sep">✦</span>' + one + '<span class="sep">✦</span>';
+  })();
 
   showScreen(homeEl,false);
 </script>
