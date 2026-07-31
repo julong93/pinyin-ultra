@@ -298,11 +298,19 @@
   const LEVELS = [];
   WORLDS.forEach((w,wi)=> w.items.forEach(it=> LEVELS.push({...it, world:wi})));
 
-  // 四声的显示(仅单韵母用):基础字母 -> 四个带调形式
+  // 四声的显示:拼音 id -> 四个带调形式(声调标在主元音上)
   const TONE_MARKS = {
     a:['ā','á','ǎ','à'], o:['ō','ó','ǒ','ò'], e:['ē','é','ě','è'],
-    i:['ī','í','ǐ','ì'], u:['ū','ú','ǔ','ù'], 'ü':['ǖ','ǘ','ǚ','ǜ'],
+    i:['ī','í','ǐ','ì'], u:['ū','ú','ǔ','ù'], v:['ǖ','ǘ','ǚ','ǜ'],
+    ai:['āi','ái','ǎi','ài'], ei:['ēi','éi','ěi','èi'], ui:['uī','uí','uǐ','uì'],
+    ao:['āo','áo','ǎo','ào'], ou:['ōu','óu','ǒu','òu'], iu:['iū','iú','iǔ','iù'],
+    ie:['iē','ié','iě','iè'], ve:['üē','üé','üě','üè'], er:['ēr','ér','ěr','èr'],
+    an:['ān','án','ǎn','àn'], en:['ēn','én','ěn','èn'], in:['īn','ín','ǐn','ìn'],
+    un:['ūn','ún','ǔn','ùn'], vn:['ǖn','ǘn','ǚn','ǜn'],
+    ang:['āng','áng','ǎng','àng'], eng:['ēng','éng','ěng','èng'], ing:['īng','íng','ǐng','ìng'],
   };
+  // 有完整四声录音、可做"声调辨别"的关卡(ong 无独立音节,声母无声调,均不在此列)
+  const TONE_LEVELS = new Set(Object.keys(TONE_MARKS));
 
   const MONSTER_EMOJI = ['👾','👹','👺','🐲','🦖','🦕','🐙','🦑','🐉','👽'];
 
@@ -334,32 +342,26 @@
   // ========== 语音(真人录音优先,缺失时回退 TTS) ==========
   // 录音来自开源项目 hugolpz/audio-cmn (CC-BY-SA)。放在同目录 audio/ 下。
   const AUDIO_DIR = 'audio';
-  // 哪些 id 有录音文件(单韵母是 id+声调号,其余是 id 本身);ong 没有纯净录音→回退TTS
-  const HAS_AUDIO = new Set([
-    'a','o','e','i','u','v',                                   // 单韵母(实际用 a1..a4 等)
+  // 声母(23个):只有单个录音文件,无声调
+  const SM_AUDIO = new Set([
     'b','p','m','f','d','t','n','l','g','k','h','j','q','x',
-    'zh','ch','sh','r','z','c','s','y','w',                    // 声母
-    'ai','ei','ui','ao','ou','iu','ie','ve','er',
-    'an','en','in','un','vn','ang','eng','ing'                 // 复韵母/鼻韵母(缺 ong)
+    'zh','ch','sh','r','z','c','s','y','w'
   ]);
-  const SINGLE_VOWELS = new Set(['a','o','e','i','u','v']);
 
   let curAudio=null;
   function unlockSpeech(){ if('speechSynthesis'in window){ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u);} }
 
-  // toneNum: 单韵母时指定第几声(1~4);不传时默认播第一声
+  // toneNum: 有四声的拼音指定第几声(1~4);不传时默认第一声
   function playSound(item, toneNum){
     // 先停掉正在播的
     if(curAudio){ try{curAudio.pause();}catch(e){} curAudio=null; }
     if('speechSynthesis'in window) speechSynthesis.cancel();
 
     let file=null;
-    if(HAS_AUDIO.has(item.id)){
-      if(SINGLE_VOWELS.has(item.id)){
-        file = `${AUDIO_DIR}/${item.id}${toneNum||1}.mp3`;   // a1.mp3 ...
-      }else{
-        file = `${AUDIO_DIR}/${item.id}.mp3`;                // b.mp3, ai.mp3 ...
-      }
+    if(TONE_LEVELS.has(item.id)){
+      file = `${AUDIO_DIR}/${item.id}${toneNum||1}.mp3`;   // 单韵母/复韵母/鼻韵母:a1.mp3 ai3.mp3 ...
+    }else if(SM_AUDIO.has(item.id)){
+      file = `${AUDIO_DIR}/${item.id}.mp3`;                // 声母:b.mp3 ...
     }
     if(file){
       const a=new Audio(file);
@@ -443,8 +445,8 @@
     promptEl.textContent='跟着奥特曼一起读!';
 
     let tonesHTML='';
-    if(item.type==='single'){
-      const marks=TONE_MARKS[item.disp]||[];
+    if(TONE_LEVELS.has(item.id)){
+      const marks=TONE_MARKS[item.id]||[];
       tonesHTML=`<div class="tones">`+marks.map(m=>`<div class="tone" data-tone="${m}">${m}</div>`).join('')+`</div>`;
     }
     learnArea.innerHTML=`
@@ -464,7 +466,7 @@
     document.getElementById('pyBig').onclick=()=>playSound(item);
     document.getElementById('speakBtn').onclick=()=>playSound(item);
     document.getElementById('goFight').onclick=()=>startFight(i);
-    if(item.type==='single'){
+    if(TONE_LEVELS.has(item.id)){
       learnArea.querySelectorAll('.tone').forEach((t,ti)=>{
         t.onclick=()=>{ t.style.transform='scale(1.15)'; setTimeout(()=>t.style.transform='',150); playSound(item, ti+1); };
       });
@@ -477,8 +479,58 @@
     learnArea.classList.add('hidden');
     fightArea.classList.remove('hidden');
     promptEl.textContent='';
+    // 有四声的关 → 声调辨别;声母/ong → 旧玩法(选拼音)
+    if(TONE_LEVELS.has(item.id)) startToneFight(i);
+    else startPinyinFight(i);
+  }
 
-    // 干扰项:随机选 2 个别的拼音
+  // 成功/失败的公共处理(供两种玩法复用)
+  function onFightWin(i, deadBtn, wrapEl){
+    beamEl.classList.add('on');
+    setTimeout(()=>beamEl.classList.remove('on'),500);
+    if(deadBtn) deadBtn.classList.add('dead');
+    praise();
+    wrapEl.style.pointerEvents='none';
+    setTimeout(()=>playSuccessFX(()=>winLevel(i)), 600);
+  }
+  function onFightWrong(i, wrongBtn, wrapEl, replayFn){
+    wrongBtn.classList.add('wrong'); setTimeout(()=>wrongBtn.classList.remove('wrong'),400);
+    wrapEl.style.pointerEvents='none';
+    playFailFX(i, ()=>{ wrapEl.style.pointerEvents=''; replayFn(); });
+  }
+
+  // ===== 声调辨别玩法(单韵母/复韵母/鼻韵母)=====
+  function startToneFight(i){
+    const item=LEVELS[i];
+    const marks=TONE_MARKS[item.id];              // ['āi','ái','ǎi','ài']
+    const target=Math.floor(Math.random()*4)+1;   // 随机播放第几声(1~4)
+
+    fightArea.innerHTML=`
+      <div class="prompt" style="font-size:21px;margin-bottom:2px">仔细听 👂 点出听到的那个<b style="color:#ffd54a">声调</b>!</div>
+      <div style="opacity:.6;font-size:14px;margin-bottom:6px">(它们都是「${item.disp}」,只是声调不同)</div>
+      <button class="speaker" id="replay">🔊 再听一次</button>
+      <div class="monsters" id="monsters"></div>
+    `;
+    const mwrap=document.getElementById('monsters');
+    // 四只怪兽:分别代表第 1~4 声,顺序打乱防止背位置
+    const order=[1,2,3,4]; shuffle(order);
+    order.forEach(tone=>{
+      const emoji=MONSTER_EMOJI[(tone-1)%MONSTER_EMOJI.length];
+      const b=document.createElement('button'); b.className='monster';
+      b.innerHTML=`<div class="m-emoji">${emoji}</div><div class="m-py">${marks[tone-1]}</div>`;
+      b.onclick=()=>{
+        if(tone===target) onFightWin(i, b, mwrap);
+        else onFightWrong(i, b, mwrap, ()=>playSound(item, target));
+      };
+      mwrap.appendChild(b);
+    });
+    setTimeout(()=>playSound(item, target),300);
+    document.getElementById('replay').onclick=()=>playSound(item, target);
+  }
+
+  // ===== 旧玩法:三选一辨拼音(声母 / ong)=====
+  function startPinyinFight(i){
+    const item=LEVELS[i];
     const others=LEVELS.map((l,idx)=>idx).filter(idx=>idx!==i);
     shuffle(others);
     const optionIdx=[i, others[0], others[1]];
@@ -496,20 +548,8 @@
       const b=document.createElement('button'); b.className='monster';
       b.innerHTML=`<div class="m-emoji">${emoji}</div><div class="m-py">${opt.disp}</div>`;
       b.onclick=()=>{
-        if(oi===i){
-          // 答对:光线击爆怪兽 → 火箭+烟花特效 → 胜利卡片
-          beamEl.classList.add('on');
-          setTimeout(()=>beamEl.classList.remove('on'),500);
-          b.classList.add('dead');
-          praise();
-          mwrap.style.pointerEvents='none';   // 防止连点
-          setTimeout(()=>playSuccessFX(()=>winLevel(i)), 600);
-        }else{
-          // 答错:怪兽抖动 + 奥特曼石化特效,然后重读让孩子再试
-          b.classList.add('wrong'); setTimeout(()=>b.classList.remove('wrong'),400);
-          mwrap.style.pointerEvents='none';
-          playFailFX(i, ()=>{ mwrap.style.pointerEvents=''; playSound(item); });
-        }
+        if(oi===i) onFightWin(i, b, mwrap);
+        else onFightWrong(i, b, mwrap, ()=>playSound(item));
       };
       mwrap.appendChild(b);
     });
@@ -596,8 +636,41 @@
     setTimeout(()=>{ fxSuccess.classList.add('hidden'); if(done) done(); }, 2600);
   }
 
+  // 失败音效:用 Web Audio 合成"能量耗尽"下行音(不依赖音频文件)
+  let audioCtx=null;
+  function failSound(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==='suspended') audioCtx.resume();
+      const t=audioCtx.currentTime;
+      // 主体:锯齿波从高滑到低,音量先起后落 —— "哇呜…"泄气感
+      const o=audioCtx.createOscillator();
+      const g=audioCtx.createGain();
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(440, t);
+      o.frequency.exponentialRampToValueAtTime(70, t+0.75);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.28, t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.9);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t); o.stop(t+0.95);
+      // 叠加一层低沉方波,增强"沉重坠落"感
+      const o2=audioCtx.createOscillator();
+      const g2=audioCtx.createGain();
+      o2.type='square';
+      o2.frequency.setValueAtTime(160, t);
+      o2.frequency.exponentialRampToValueAtTime(45, t+0.7);
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.exponentialRampToValueAtTime(0.14, t+0.08);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t+0.85);
+      o2.connect(g2).connect(audioCtx.destination);
+      o2.start(t); o2.stop(t+0.9);
+    }catch(e){}
+  }
+
   // 失败特效:能量爆散→石化裂纹→崩塌+灰烬+震屏,done 结束后触发
   function playFailFX(heroIdx, done){
+    failSound();                          // 失败音效,与动效同步
     petrifyEl.innerHTML=heroSVG(heroIdx);
     cracksEl.innerHTML=''; ashEl.innerHTML=''; energyDrainEl.innerHTML='';
     fxFail.classList.remove('hidden');
