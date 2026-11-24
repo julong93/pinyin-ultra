@@ -471,7 +471,7 @@
   function randMonster(){ return MONSTER_IMAGES[Math.floor(Math.random()*MONSTER_IMAGES.length)]; }
 
   // 抽卡获得/图鉴收集的奥特曼卡片图。列表默认写死,启动时会自动扫描 cards/ 覆盖
-  let CARD_IMAGES=['card1.jpg','card2.jpg','card3.png','card4.jpeg','card5.webp','card6.webp','card7.jpeg','card8.jpeg','card9.jpeg','card10.jpg','card11.jpg','card12.png','card13.jpg','card14.jpeg','card15.jpeg','card16.jpg','card17.jpeg','card18.jpeg','card19.jpg','card20.jpg','card21.jpg','card22.jpg','card23.jpg','card24.webp','card25.webp','card26.webp','card27.jpg','card28.webp','card29.jpg','card30.jpg'];
+  let CARD_IMAGES=['card1.jpg','card2.png','card3.webp','card4.jpeg','card5.webp','card6.webp','card7.webp','card8.jpeg','card9.jpeg','card10.webp','card11.jpeg','card12.jpeg','card13.webp','card14.jpg','card15.jpg','card16.jpg','card17.jpg','card18.png','card19.jpg','card20.webp','card21.jpg','card22.jpg','card23.jpg','card24.jpg','card25.png','card26.jpg','card27.webp','card28.png','card29.jpeg','card30.jpeg','card31.jpeg','card32.png','card33.png','card34.jpeg','card35.png','card36.webp','card37.jpeg','card38.jpg','card39.jpg','card40.jpeg','card41.jpeg','card42.webp','card43.jpg','card44.webp','card45.jpg','card46.webp','card47.webp','card48.jpeg','card49.webp','card50.jpg','card51.jpg','card52.jpeg','card53.webp','card54.webp','card55.webp','card56.webp','card57.jpeg','card58.jpeg','card59.jpg','card60.jpeg','card61.webp','card62.jpg','card63.jpg'];
   function cardImg(i){
     return `<img class="hero-img" src="cards/${encodeURIComponent(CARD_IMAGES[i % CARD_IMAGES.length])}" alt="">`;
   }
